@@ -1,0 +1,13 @@
+{
+  "plugins": [
+    "transform-object-rest-spread",
+    ["module-resolver", {
+      "root": ["./dist"],
+      "alias": {
+        "@core": "./dist/core",
+        "@utils": "./dist/utils",
+        "@integrations": "./dist/integrations"
+      }
+    }]
+  ]
+}

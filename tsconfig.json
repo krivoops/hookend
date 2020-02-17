@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "removeComments": true,
+    "target": "esnext",
+    "noImplicitAny": false,
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@core": ["src/core/"],
+      "@core/*": ["src/core/*"],
+      "@utils/*": ["src/utils/*"],
+      "@models/*": ["src/models/*"],
+      "@integrations/*": ["src/integrations/*"],
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/core/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

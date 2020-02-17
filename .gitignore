@@ -1,0 +1,13 @@
+.idea/
+build/
+deploy.config.js
+configs/configs
+package-lock.json
+hookend.log
+hookend-errors.log
+yarn-error.log
+package-lock.json
+node_modules/
+photos/
+dist/
+.env
