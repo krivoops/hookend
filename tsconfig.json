@@ -7,14 +7,12 @@
     "target": "esnext",
     "noImplicitAny": false,
     "moduleResolution": "node",
-    "outDir": "dist",
+    "outDir": "core",
     "baseUrl": ".",
     "paths": {
       "@core": ["src/core/"],
       "@core/*": ["src/core/*"],
-      "@utils/*": ["src/utils/*"],
-      "@models/*": ["src/models/*"],
-      "@integrations/*": ["src/integrations/*"],
+      "@utils/*": ["src/core/utils/*"]
     }
   },
   "include": [

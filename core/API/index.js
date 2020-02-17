@@ -1,47 +1,36 @@
-import { json, urlencoded } from 'body-parser';
-
-import { HookendApplication, HookendRequest } from '@core/types';
-import { createError } from '@core/API/API/errorHandler';
-import responseHandler from './API/responseHandler';
-
-import { getRelations } from '@core/Model/helpers/relations';
-
-import {ObjectId} from "bson";
-
-const dasherialize = (text => text.replace(/([A-Z])+/g, function(value) { return `-${value.toLowerCase()}`;}));
-
-const performIds = (id: string | ObjectId) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const body_parser_1 = require("body-parser");
+const errorHandler_1 = require("@core/API/API/errorHandler");
+const responseHandler_1 = require("./API/responseHandler");
+const relations_1 = require("@core/Model/helpers/relations");
+const bson_1 = require("bson");
+const dasherialize = (text => text.replace(/([A-Z])+/g, function (value) { return `-${value.toLowerCase()}`; }));
+const performIds = (id) => {
     if (typeof id === 'object') {
         return id;
     }
     try {
-        return id.length !== 12 ? new ObjectId(id) : id;
-    } catch (e) {
+        return id.length !== 12 ? new bson_1.ObjectId(id) : id;
+    }
+    catch (e) {
         return id;
     }
 };
-
-export default class API {
-    private app: HookendApplication;
-
+class API {
     constructor(app) {
         this.app = app;
     }
-
-    public initBefore() {
-        // TODO move this middlewares to some another way
-        this.app.use(json());
-        this.app.use(json({ type: 'application/vnd.api+json' }));
-        this.app.use(urlencoded({ extended: true }));
-
-        this.app.use((req: HookendRequest, res, next) => {
+    initBefore() {
+        this.app.use(body_parser_1.json());
+        this.app.use(body_parser_1.json({ type: 'application/vnd.api+json' }));
+        this.app.use(body_parser_1.urlencoded({ extended: true }));
+        this.app.use((req, res, next) => {
             req.models = this.app.models;
             req.requestResults = [];
             req.requestIncluded = {};
             req.requestErrors = [];
             req.requestSuccess = [];
-
-            // TODO refactor this and add jsonapi TYPE errors
             if (req.headers['content-type'] === 'application/vnd.api+json'
                 && (req.method === 'POST' || req.method === 'PATCH')) {
                 if (!req.body.data) {
@@ -53,14 +42,14 @@ export default class API {
                 initData.forEach(item => {
                     const fields = item.attributes || {};
                     if (item.relationships) {
-                       Object.keys(item.relationships).forEach((relationship) => {
-                           const field = item.relationships[relationship].data;
-                           if (field) {
-                               fields[relationship] = Array.isArray(field)
-                                   ? field.map((relationItem) => performIds(relationItem.id))
-                                   : performIds(field.id)
-                           }
-                       })
+                        Object.keys(item.relationships).forEach((relationship) => {
+                            const field = item.relationships[relationship].data;
+                            if (field) {
+                                fields[relationship] = Array.isArray(field)
+                                    ? field.map((relationItem) => performIds(relationItem.id))
+                                    : performIds(field.id);
+                            }
+                        });
                     }
                     if (item.id) {
                         fields._id = item.id;
@@ -68,35 +57,32 @@ export default class API {
                     result.push({
                         type: item.type,
                         fields: fields
-                    })
+                    });
                 });
                 const meta = req.body.meta;
                 req.body = {
                     data: result,
                     meta
-                }
+                };
             }
             next();
         });
     }
-
-    public initAfter() {
-        this.app.use(responseHandler);
+    initAfter() {
+        this.app.use(responseHandler_1.default);
     }
-
-    private async crearteController({ req, res, next, model, method, todo, Model }) {
+    async crearteController({ req, res, next, model, method, todo, Model }) {
         try {
             req.time = new Date().getTime();
-
-            await todo({req, res}, {
+            await todo({ req, res }, {
                 body: req.body,
                 query: req.query,
                 headers: req.headers,
             });
-
             next();
-        } catch (e) {
-            createError(req, {
+        }
+        catch (e) {
+            errorHandler_1.createError(req, {
                 model: model,
                 method: method,
                 status: 500,
@@ -107,35 +93,27 @@ export default class API {
                 code: 'INTERNAL_SERVER_ERROR',
                 error: e,
             });
-
             next();
         }
     }
-
-    public createRoute(routeMethod, path, todo, {
-        model,
-        method,
-        Model,
-    }) {
+    createRoute(routeMethod, path, todo, { model, method, Model, }) {
         this.app[routeMethod](`${this.app.config.APIDefaultPath}/${path}`, async (req, res, next) => {
-            this.crearteController({ req, res, next, model, method, todo, Model })
+            this.crearteController({ req, res, next, model, method, todo, Model });
         });
     }
-
-    public initModelRoutes(Model) {
+    initModelRoutes(Model) {
         Object.keys(Model.routes).forEach(async (method) => {
             Object.keys(Model.routes[method]).forEach((fnName) => {
-                this.createRoute(method,`models/${dasherialize(Model.modelName)}/methods/${dasherialize(fnName)}`, async ({req, res}) => {
-                    await Model.routes[method][fnName].call(Model,{req, res})
+                this.createRoute(method, `models/${dasherialize(Model.modelName)}/methods/${dasherialize(fnName)}`, async ({ req, res }) => {
+                    await Model.routes[method][fnName].call(Model, { req, res });
                 }, {
                     method: fnName,
                     model: Model.modelName,
                     Model
-                })
+                });
             });
         });
-
-        this.createRoute('get',`models/${dasherialize(Model.modelName)}`, async ({req}) => {
+        this.createRoute('get', `models/${dasherialize(Model.modelName)}`, async ({ req }) => {
             await Model.get_list({
                 ids: [],
                 query: req.query.filter || null,
@@ -153,8 +131,7 @@ export default class API {
             method: 'get_list',
             Model
         });
-
-        this.createRoute('get',`models/${dasherialize(Model.modelName)}/:id`, async ({req}) => {
+        this.createRoute('get', `models/${dasherialize(Model.modelName)}/:id`, async ({ req }) => {
             await Model.get_list({
                 ids: [req.params.id],
                 included: req.query.include || null,
@@ -165,28 +142,25 @@ export default class API {
                 request: req,
                 auth: req.auth
             });
-            req.responseDataType = {}
+            req.responseDataType = {};
         }, {
             model: Model.modelNameInit,
             method: 'get_one',
             Model
         });
-
-        this.createRoute('post',`models/${dasherialize(Model.modelName)}`, async ({req, res}) => {
+        this.createRoute('post', `models/${dasherialize(Model.modelName)}`, async ({ req, res }) => {
             await Model.insert(req.body, {
                 models: req.models,
                 request: req,
                 auth: req.auth
             });
-
             res.status(201);
         }, {
             model: Model.modelNameInit,
             method: 'insert',
             Model
         });
-
-        this.createRoute('patch',`models/${dasherialize(Model.modelName)}/:id`, async ({req, res}) => {
+        this.createRoute('patch', `models/${dasherialize(Model.modelName)}/:id`, async ({ req, res }) => {
             await Model.update(req.body, {
                 models: req.models,
                 request: req,
@@ -197,19 +171,17 @@ export default class API {
             method: 'update',
             Model
         });
-
-        this.createRoute('delete',`models/${dasherialize(Model.modelName)}/:id`, async ({req, res}) => {
+        this.createRoute('delete', `models/${dasherialize(Model.modelName)}/:id`, async ({ req, res }) => {
             const result = await Model.delete([req.params.id], {
                 models: req.models,
                 request: req,
                 auth: req.auth
             });
-
-            // TODO move insede delete method
             if (result.length) {
                 res.status(204);
                 res.end();
-            } else {
+            }
+            else {
                 res.status(404);
                 res.end();
             }
@@ -219,65 +191,56 @@ export default class API {
             Model
         });
     }
-
-    public mergeIncluded(included, toMerge) {
+    mergeIncluded(included, toMerge) {
         Object.keys(toMerge).forEach((key) => {
             if (!included[key]) {
-                included[key] = toMerge[key]
-            } else {
+                included[key] = toMerge[key];
+            }
+            else {
                 included[key] = {
                     ...included[key],
                     ...toMerge[key]
-                }
+                };
             }
         });
-
-        return included
+        return included;
     }
-
-    // TODO reffactor this. Problem with many and one models
-    public async sendModelData(DataModel, options, included = '') {
+    async sendModelData(DataModel, options, included = '') {
         if (options.request || options.doNotSend) {
             if (options.request) {
-                options.auth = options.request.auth
+                options.auth = options.request.auth;
             }
-
             const include = included ? included : options.request ? options.request.query.include : null;
-
-            const {
-                data: result,
-                resolvingClass,
-            } = await getRelations(DataModel._fields ? DataModel : DataModel[Object.keys(DataModel)[0]], {
+            const { data: result, resolvingClass, } = await relations_1.getRelations(DataModel._fields ? DataModel : DataModel[Object.keys(DataModel)[0]], {
                 data: DataModel._fields ? DataModel._fields : Object.keys(DataModel).reduce((arr, key) => {
                     arr.push(DataModel[key]._fields);
-                    return arr
+                    return arr;
                 }, []),
                 options,
                 included: include,
                 meta_options: options.request ? options.request.query.meta_options || {} : {},
             });
-
             if (!options.doNotSend) {
                 if (!options.rawJson) {
-                    options.request.requestedModel = DataModel.modelName
+                    options.request.requestedModel = DataModel.modelName;
                 }
                 options.request.requestResults = options.request.requestResults.concat(result);
-                options.request.requestIncluded = options.request.requestIncluded = this.mergeIncluded(options.request.requestIncluded,resolvingClass.included)
-            } else {
+                options.request.requestIncluded = options.request.requestIncluded = this.mergeIncluded(options.request.requestIncluded, resolvingClass.included);
+            }
+            else {
                 return {
                     data: result,
                     included: resolvingClass.included
-                }
+                };
             }
         }
     }
-
-    public async validateBody({ fields, model, method }, request) {
+    async validateBody({ fields, model, method }, request) {
         const invalid = [];
         fields.forEach((field) => {
             if (!request.body[field]) {
                 invalid.push(field);
-                createError(request, {
+                errorHandler_1.createError(request, {
                     model: model,
                     method: method,
                     detail: {
@@ -292,3 +255,4 @@ export default class API {
         return invalid;
     }
 }
+exports.default = API;

@@ -2,15 +2,14 @@
   "name": "hookend",
   "version": "1.0.0",
   "description": "Hookend backend project",
-  "main": "app.js",
+  "main": "./src/app.js",
   "scripts": {
     "build-ts": "tsc",
     "start": "npm run serve",
     "serve": "node dist/server.js",
     "watch-node": "nodemon --exec babel-node dist/server.js",
     "watch-ts": "tsc -w --inlineSourceMap",
-    "watch": "yarn watch-ts & yarn watch-node",
-    "deploy": "npm run build-ts && babel dist -d build/build && node deploy/deploy.js"
+    "watch": "yarn watch-ts & yarn watch-node"
   },
   "repository": {
     "type": "git",

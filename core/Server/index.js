@@ -1,25 +1,17 @@
-import { ServerInit, HookendApplication } from '@core/types';
-import * as express from 'express';
-import API from '@core/API';
-
-import logger from '@core/utils/logger';
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express = require("express");
+const API_1 = require("@core/API");
+const logger_1 = require("@core/utils/logger");
 class Hookend {
-    public app: HookendApplication;
-    private api: API;
-    private port: number = 1337;
-
-    // TODO make sure that db is okay db.db(...) in parametrs of model
-    constructor(data: ServerInit) {
+    constructor(data) {
+        this.port = 1337;
         this.port = data.port || this.port;
         this.app = express();
         this.app.models = {};
         this.app.config = data.config;
-
-        this.api = new API(this.app);
-
+        this.api = new API_1.default(this.app);
         this.api.initBefore();
-
         Object.keys(data.models).forEach((model) => {
             this.app.models[model] = new data.models[model]({
                 app: this.app,
@@ -28,28 +20,19 @@ class Hookend {
             });
         });
         this.app.auth.method.toGenerateDependencies();
-
         if (data.beforeInitAfter) {
-            data.beforeInitAfter.call(this)
+            data.beforeInitAfter.call(this);
         }
-
         this.api.initAfter();
-
         this.listen();
-
-        return this
+        return this;
     }
-
-    private listen() {
+    listen() {
         this.app.listen(this.port, () => {
-            logger.info(`Hookend meets you on ${this.port} port`, {
+            logger_1.default.info(`Hookend meets you on ${this.port} port`, {
                 service: 'Server',
             });
         });
     }
 }
-
-export {
-    Hookend,
-};
-
+exports.Hookend = Hookend;
